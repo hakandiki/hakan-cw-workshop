@@ -1,7 +1,11 @@
 AWSTemplateFormatVersion: 2010-09-09
 ​
-Description: This template creates an EC2 instance which enables SSH, HTTS connection for website project. 
-​
+Description: Cloudformation Template for Kittens Carousel Static Website on EC2. 
+  This template deploys Kittens Carousel Static website on Amazon Linux 2 
+  EC2 Instance with custom security group allowing http connections on 80. 
+  Kittens Carousel Static Website is downloaded from GitHub repository, 
+  then deployed on Apache Web Server.
+  
 Resources:
   HakanCFInstance:
     Type: AWS::EC2::Instance
@@ -14,19 +18,25 @@ Resources:
       UserData:
         Fn::Base64:                                # YAML makes userdata much cleaner
           !Sub |
-              #!/bin/bash -ex
-              yum update -y;
-              yum install -y httpd;
-              chkconfig httpd on;
-              chmod -R 777 /var/www/html;
-              cd /var/www/html;
-              wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/templates/index.html;
-              wget https://raw.githubusercontent.com/charliefalcon/aws-devops-workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat0.jpg;
-              wget https://raw.githubusercontent.com/charliefalcon/aws-devops-workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat1.jpg;
-              wget https://raw.githubusercontent.com/charliefalcon/aws-devops-workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat2.jpg;
-              service httpd start;
-              chkconfig httpd on;
+              #! /bin/bash
+              yum update -y
+              yum install -y httpd
+              chkconfig httpd on
+              chmod -R 777 /var/www/html
+              cd /var/www/html
+              wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/index.html
+              wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat0.jpg
+              wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat1.jpg
+              wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat2.jpg
+              service httpd start
+              chkconfig httpd on
       Tags:
         - Key: Name
-          Value: Web Server of StackName
+          Value: !Sub Web Server of ${AWS::StackName} Stack
       
+Outputs:
+  WebsiteURL:
+    Value: !Sub 
+      - http://${PublicAddress}
+      - PublicAddress: !GetAtt HakanCFInstance.PublicDnsName
+    Description: Kittens Carousel Application URL
