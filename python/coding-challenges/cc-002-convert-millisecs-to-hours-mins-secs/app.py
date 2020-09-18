@@ -7,6 +7,15 @@ Please enter the milliseconds (should be greater than zero) :  """)
 
 
 def calculate(num):
+
+    # sec = num // 1000
+    # min = sec // 60
+    # sec = sec % 60
+    # hour = min // 60
+    # min = min % 60
+    # return f'{hour} hour(s)'*(hour != 0) + f' {min} minute(s)'*(min != 0) + f' {sec} second(s)' *(sec != 0) or f'{milliseconds} millisecond(s)' * (milliseconds < 1000)
+
+
     if num < 1000:
         print(f"just {num} millisecons", end=" ")
     else:
@@ -32,6 +41,6 @@ while True:
     else:
         number = int(number)
         calculate(number)
-        counter += 1
+    counter += 1
         
     
