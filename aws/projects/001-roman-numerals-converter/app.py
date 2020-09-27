@@ -4,8 +4,8 @@ app = Flask(__name__)
 
 def not_valid(number):
     if number.isdigit() == False:
-            print(f"Not Valid Input !!!")
-            return True
+        print(f"Not Valid Input !!!")
+        return True
     else:
         numberlocal = int(number)
         if numberlocal < 1 or numberlocal > 3999:
@@ -57,4 +57,4 @@ def head():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=80)
