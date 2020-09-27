@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: |
+  This template is for that The Roman Numerals Converter Application aims to convert the given number to the Roman numerals in public web page.
+Application files is downloaded from github repo and deployed on EC2 insrance using user data script in this template.
+Key pair is adjusted to a parameter getting from user. t2.micro is selected and EC2 is tagged Web Server of StackName.
+
+Parameters:
+  KeyName:
+    Description: The EC2 Key Pair to allow SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+
+  
+Metadata:
+  
+
+Mappings:
+  
+
+Conditions:
+  
+Resources:
+  webserver:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-02354e95b39ca8dec
+      InstanceType: t2.micro
+      KeyName:  !Ref KeyName
+      SecurityGroups:
+          - !Ref myWebSecurityGroup
+      UserData: !Base64 |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd
+          chmod -R 777 /var/www/html
+           /var/www/html/index.html
+          systemctl start httpd
+          systemctl enable httpd
+
+
+  myWebSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Enables SSH and HTTP
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+
+  
+
+Transform:
+  
+Outputs:
