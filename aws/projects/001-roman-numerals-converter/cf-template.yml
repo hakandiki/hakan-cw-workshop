@@ -11,14 +11,7 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
 
   
-Metadata:
-  
 
-Mappings:
-  
-
-Conditions:
-  
 Resources:
   webserver:
     Type: AWS::EC2::Instance
@@ -33,8 +26,15 @@ Resources:
           yum update -y
           yum install -y httpd
           chmod -R 777 /var/www/html
-           /var/www/html/index.html
+          cd /var/www/html
+          mkdir templates
+          cd templates
+          wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/001-roman-numerals-converter/templates/index.html
+          wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/001-roman-numerals-converter/templates/result.html
+          cd ../
+          wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/001-roman-numerals-converter/app.py
           systemctl start httpd
+          python3 app.py
           systemctl enable httpd
 
 
@@ -55,6 +55,10 @@ Resources:
 
   
 
-Transform:
-  
+
 Outputs:
+  WebsiteURL:
+    Value: !Sub 
+      - http://${PublicAddress}
+      - PublicAddress: !GetAtt webserver.PublicDnsName
+    Description: Roman Numerals Conventer URL
