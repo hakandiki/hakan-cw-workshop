@@ -1,122 +1,170 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: |
-This template is for Milliseconds converter application (Python Flask) deployed on AWS with load balancer and Auto scaling.
-VPC is set to default VPC. Application load balancer is set with HTTP allowing security group.
-Security group of EC2 instances is set to allow HTTP connections only from sg of Application Load Balancer.
-Auto scaling is set to " desired capacity of instance 2, minimun is 1, maximum is 3 etc."
-EC2 have Python Flask environment and download Application code from Github repository, then deploy it on flask server.
-EC2 instance type is t2.micro. Instance launched by cf with Web Server of Stackname tag
-Application website URL is given as output by cf.  
+  This template is for Milliseconds converter application (Python Flask) deployed on AWS with load balancer and Auto scaling.
+  VPC is set to default VPC. Application load balancer is set with HTTP allowing security group.
+  Security group of EC2 instances is set to allow HTTP connections only from sg of Application Load Balancer.
+  Auto scaling is set to " desired capacity of instance 2, minimun is 1, maximum is 3 etc."
+  EC2 have Python Flask environment and download Application code from Github repository, then deploy it on flask server.
+  EC2 instance type is t2.micro. Instance launched by cf with Web Server of Stackname tag
+  Application website URL is given as output by cf.  
 Parameters:
+  KeyName:
+    Description: The EC2 Key Pair to allow SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+
+  myVpcId:
+    Description: VpcId of your existing Virtual Private Cloud (VPC)
+    Type: AWS::EC2::VPC::Id
   
-Metadata:
+  mySubnets:
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    Type: List<AWS::EC2::Subnet::Id>
+
+  
+
   
 Mappings:
+  RegionImageMap:
+    us-east-1:
+      AMI: ami-0c94855ba95c71c99
+    us-east-2:
+      AMI: ami-0603cbe34fd08cb81
+    us-west-1:
+      AMI: ami-0e65ed16c9bf1abc7
+    us-west-2:
+      AMI: ami-0841edc20334f9287
+    eu-west-1:
+      AMI: ami-08a2aed6e0a6f9c7d  
   
-Conditions:
-  
+
 Resources:
   myAutoSclGrp:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties:
-      AutoScalingGroupName: project002ASG
+      AutoScalingGroupName: projectASGv1
       AvailabilityZones: !GetAZs 
       DesiredCapacity: '2'
       HealthCheckGracePeriod: 90
       HealthCheckType: ELB
-      LaunchTemplate: eklenecek
-      LifecycleHookSpecificationList:
-        - LifecycleHookSpecification
-      LoadBalancerNames:
-        - String
-      MaxInstanceLifetime: Integer
+      LaunchTemplate: 
+        LaunchTemplateId: !Ref myASGLTemp
+        Version: !GetAtt myASGLTemp.LatestVersionNumber
       MaxSize: '3' #required
       MinSize: '1' #required
       Tags:
         - Key: Name
+          PropagateAtLaunch: true
           Value: 'Web Server of eklenecek'
       TargetGroupARNs:
-        - String
+        - !Ref myTG
      
   myASGLTemp:
     Type: "AWS::EC2::LaunchTemplate"
     Properties:
-      LaunchTemplateName: project002LT
+      LaunchTemplateName: projectLTv1
       LaunchTemplateData:
-        KeyName: !Ref eklenecek
-        ImageId: !FindInMap
-          - Region 
+        KeyName: !Ref KeyName
+        ImageId: !FindInMap 
+        - RegionImageMap
+        - !Ref AWS::Region
+        - AMI
+        SecurityGroups:
+            - !Ref mySG
+        InstanceType: 't2.micro'
+        UserData: !Base64 |
+          #!/bin/bash
+          yum update -y
+          yum install python3 -y
+          yum install python3-pip -y
+          pip3 install flask
+          mkdir templates
+          cd templates
+          wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/002-milliseconds-converter/templates/index.html
+          wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/002-milliseconds-converter/templates/result.html
+          cd ../
+          wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/002-milliseconds-converter/app.py
+          python3 app.py
+  
+  myTG:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      HealthCheckIntervalSeconds: 25
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      Name: projectTGv1
+      Port: 80
+      Protocol: HTTP
+      Tags:
+        - Key:  Name
+          Value: CreatedTG
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref myVpcId 
+
+
+
+  myLoadBLis:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      DefaultActions: #required
+        - Type: forward
+          TargetGroupArn: !Ref myTG
+      LoadBalancerArn: !Ref myLoadB #required
+      Port: 80 #required
+      Protocol: HTTP #required
+
+  myLoadB:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      SecurityGroups:
+        - !GetAtt myELBSG.GroupId
+      Subnets: !Ref mySubnets
+
+
+  mySG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Project_002SG #required
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupName: !Ref myELBSG
+      Tags:
+        - Key: Name
+          Value: Project_002SGv1
+      
+  myELBSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: ProjectELBSG #required
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: Project_002ELBSGv1
+  
+
+
+  
+      
   
   
   
-  
-Transform:
+
   
 Outputs:
+  WebsiteURL:
+    Description: the URL of the website
+    Value: !Sub 
+      - http://${PublicAdress}
+      - PublicAdress: !GetAtt myLoadB.DNSName
 
 
 
-
-
-# AWSTemplateFormatVersion: 2010-09-09
-
-# Description: |
-#   This template is for that The Roman Numerals Converter Application aims to convert the given number to the Roman numerals in public web page.
-# Application files is downloaded from github repo and deployed on EC2 insrance using user data script in this template.
-# Key pair is adjusted to a parameter getting from user. t2.micro is selected and EC2 is tagged Web Server of StackName.
-
-# Parameters:
-#   KeyName:
-#     Description: The EC2 Key Pair to allow SSH access to the instance
-#     Type: AWS::EC2::KeyPair::KeyName
-
-  
-
-# Resources:
-#   webserver:
-#     Type: AWS::EC2::Instance
-#     Properties:
-#       ImageId: ami-02354e95b39ca8dec
-#       InstanceType: t2.micro
-#       KeyName:  !Ref KeyName
-#       SecurityGroups:
-#           - !Ref myWebSecurityGroup
-#       UserData: !Base64 |
-#           #!/bin/bash
-#           yum update -y
-#           yum install python3 -y
-#           yum install python3-pip -y
-#           pip3 install flask
-#           mkdir templates
-#           cd templates
-#           wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/001-roman-numerals-converter/templates/index.html
-#           wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/001-roman-numerals-converter/templates/result.html
-#           cd ../
-#           wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/aws/projects/001-roman-numerals-converter/app.py
-#           python3 app.py
-
-
-#   myWebSecurityGroup:
-#     Type: "AWS::EC2::SecurityGroup"
-#     Properties:
-#       GroupDescription: Enables SSH and HTTP
-#       SecurityGroupIngress:
-#         - IpProtocol: tcp
-#           FromPort: 22
-#           ToPort: 22
-#           CidrIp: 0.0.0.0/0
-#         - IpProtocol: tcp
-#           FromPort: 80
-#           ToPort: 80
-#           CidrIp: 0.0.0.0/0
-
-
-  
-
-
-# Outputs:
-#   WebsiteURL:
-#     Value: !Sub 
-#       - http://${PublicAddress}
-#       - PublicAddress: !GetAtt webserver.PublicDnsName
-#     Description: Roman Numerals Conventer URL
