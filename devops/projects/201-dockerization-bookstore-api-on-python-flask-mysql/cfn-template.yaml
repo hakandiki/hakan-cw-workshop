@@ -53,6 +53,7 @@ Resources:
           wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/devops/projects/201-dockerization-bookstore-api-on-python-flask-mysql/bookstore-api.py
           wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/devops/projects/201-dockerization-bookstore-api-on-python-flask-mysql/docker-compose.yml
           wget https://raw.githubusercontent.com/hakandiki/hakan-cw-workshop/master/devops/projects/201-dockerization-bookstore-api-on-python-flask-mysql/requirements.txt
+          docker build -t "hakancw/bookstore:latest" .
           docker-compose up
           
 Outputs:
