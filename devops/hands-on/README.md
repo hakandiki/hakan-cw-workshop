@@ -2,7 +2,7 @@
 
 List of hands-on trainings within DevOps as follows;
 
-# Docker
+# Docker  
 
 - [Hands-on Docker-01 : Installing Docker on Amazon Linux 2 AWS EC2 Instance](./docker/docker-01-installing-on-ec2-linux2/)
 
